@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
 from flask import Flask, jsonify, request
 from datetime import datetime
 from weather_service import WeatherService
@@ -20,6 +24,8 @@ def get_weather():
         return jsonify(error=f"No data for {city.strip().lower()}"), 404
     data["requested_at"] = datetime.utcnow().isoformat() + "Z"
     return jsonify(data)
+
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)

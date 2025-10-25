@@ -1,19 +1,49 @@
-class WeatherService:
-    """Pure logic: look up a city and return a normalized record."""
-    def __init__(self, seed=None):
-        self._data = seed or {
-            "lima": {"temp_c": 19, "condition": "Cloudy"},
-            "cusco": {"temp_c": 12, "condition": "Sunny"},
-            "san diego": {"temp_c": 22, "condition": "Clear"},
-        }
+# weather_service.py
+import os
+import requests
+from dotenv import load_dotenv
 
-    def get_weather(self, city: str):
-        key = (city or "").strip().lower()
-        if key not in self._data:
-            raise KeyError(key)
-        rec = self._data[key]
-        return {
-            "city": key.title(),
-            "temperature_c": rec["temp_c"],
-            "condition": rec["condition"],
+load_dotenv()  # reads .env in project root
+
+class WeatherService:
+    def __init__(self):
+        self.api_key = os.getenv("OPENWEATHER_API_KEY")
+        if not self.api_key:
+            raise KeyError("OPENWEATHER_API_KEY not set")
+
+    def get_weather(self, city: str, units: str = "metric") -> dict:
+        """
+        Call OpenWeather /weather and return a normalized dict.
+        units: 'metric' (°C) or 'imperial' (°F)
+        """
+        if not city:
+            return {"error": "Missing city"}
+
+        r = requests.get(
+            "https://api.openweathermap.org/data/2.5/weather",
+            params={"q": city, "appid": self.api_key, "units": units},
+            timeout=10,
+        )
+
+        if r.status_code == 404:
+            return {"error": "City not found", "detail": r.text}
+        try:
+            r.raise_for_status()
+        except Exception:
+            return {"error": "Upstream error", "status": r.status_code, "detail": r.text[:300]}
+
+        d = r.json()
+        temp = d.get("main", {}).get("temp")
+        out = {
+            "city": d.get("name"),
+            "country": d.get("sys", {}).get("country"),
+            "humidity": d.get("main", {}).get("humidity"),
+            "conditions": ", ".join([w["description"] for w in d.get("weather", [])]),
+            "wind_speed": d.get("wind", {}).get("speed"),
+            "units": units,
         }
+        if units == "metric":
+            out["temp_c"] = temp
+        else:
+            out["temp_f"] = temp
+        return out

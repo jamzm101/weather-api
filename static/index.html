@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Weather Lookup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 2rem; }
+    .card { padding: 1rem; border: 1px solid #ddd; border-radius: 12px; max-width: 560px; }
+    .row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    input, select, button { padding: 0.6rem 0.8rem; font-size: 1rem; }
+    pre { background: #f7f7f7; padding: 1rem; border-radius: 8px; overflow: auto; }
+    .muted { color: #666; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>Weather Lookup</h1>
+  <div class="card">
+    <div class="row">
+      <input id="city" placeholder="Enter city (e.g., San Diego)" />
+      <select id="units" aria-label="Units">
+        <option value="metric">Metric (°C)</option>
+        <option value="imperial">Imperial (°F)</option>
+      </select>
+      <button id="go">Get Weather</button>
+    </div>
+    <div id="out" class="muted">Results will appear here.</div>
+    <pre id="raw" style="display:none"></pre>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    $("go").addEventListener("click", async () => {
+      const city = $("city").value.trim();
+      const units = $("units").value;
+      if (!city) { $("out").textContent = "Please enter a city."; return; }
+
+      $("out").textContent = "Loading…";
+      $("raw").style.display = "none";
+
+      try {
+        // Because this page is served by Flask on 127.0.0.1:5050,
+        // we can call the API with a relative path:
+        const r = await fetch(`/v1/weather?city=${encodeURIComponent(city)}&units=${encodeURIComponent(units)}`);
+        const data = await r.json();
+
+        if (!r.ok) {
+          $("out").textContent = `Error: ${data.error || r.statusText}`;
+          $("raw").textContent = JSON.stringify(data, null, 2);
+          $("raw").style.display = "block";
+          return;
+        }
+
+        const t = units === "metric" ? `${data.temp_c} °C` : `${data.temp_f} °F`;
+        $("out").innerHTML = `
+          <strong>${data.city}, ${data.country}</strong><br/>
+          Conditions: ${data.conditions}<br/>
+          Temp: <strong>${t}</strong><br/>
+          Humidity: ${data.humidity}%<br/>
+          Wind: ${data.wind_speed_mph} mph<br/>
+          <span class="muted">Requested at: ${data.requested_at}</span>
+        `;
+        $("raw").textContent = JSON.stringify(data, null, 2);
+        $("raw").style.display = "block";
+      } catch (e) {
+        $("out").textContent = "Network error. Is the API running on 127.0.0.1:5050?";
+      }
+    });
+  </script>
+</body>
+</html>

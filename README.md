@@ -4,4 +4,5 @@
 # 1 - activate the virtual environment:  "source .venv/bin/activate"
 #   1a -  - - look into how to start virtual env. automatically
 # 2 - start flask server: "python3 app.py" (it make take a min to start)
+# 3 - confirm its working using curl: http//127.0.0.1
 

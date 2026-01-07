@@ -5,77 +5,213 @@
   <title>Weather Lookup</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 2rem;background-color: #d1d8db; /* light blue */ }
-    .card { padding: 1rem; border: 1px solid #ddd; border-radius: 12px; max-width: 560px; }
-    .row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-    input, select, button { padding: 0.6rem 0.8rem; font-size: 1rem; }
-pre { background: #e4e8f4; padding: 1rem; border-radius: 8px; overflow: auto; }
-.muted { color: #666; font-size: 0.95rem; }
-.result { margin-top: 1.25rem; line-height: 1.6; }
-.result-city {
-  font-size: 1.6rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-.result-line {
-  font-size: 1rem;
-  color: #444;
-}
-  </style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 2rem;
+      background-color: #d1d8db; /* light blue */
+    }
 
-  
+    h1 {
+      font-size: 2.4rem;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .card {
+      padding: 1.25rem;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 16px;
+      max-width: 680px;
+      background: rgba(255,255,255,0.35);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+
+    .row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input, select, button {
+      padding: 0.7rem 0.9rem;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.18);
+      background: #fff;
+    }
+
+    input {
+      flex: 1 1 260px;
+      min-width: 220px;
+    }
+
+    select {
+      flex: 0 0 170px;
+      min-width: 160px;
+    }
+
+    button {
+      flex: 0 0 auto;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      filter: brightness(0.98);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    pre {
+      background: #e4e8f4;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow: auto;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 0.95rem;
+    }
+
+    /* Results block */
+    .result {
+      margin-top: 1.25rem;
+      line-height: 1.65;
+    }
+
+    .result-city {
+      font-size: 1.7rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+      color: #1b1b1b;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.35rem 1.25rem;
+      margin-top: 0.5rem;
+    }
+
+    .result-line {
+      font-size: 1rem;
+      color: #333;
+    }
+
+    .label {
+      color: #555;
+      font-weight: 600;
+      margin-right: 0.35rem;
+    }
+
+    .result-time {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    /* Optional: nicer error look */
+    .error {
+      margin-top: 1rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: 12px;
+      background: rgba(255, 0, 0, 0.08);
+      border: 1px solid rgba(255, 0, 0, 0.18);
+      color: #7a1d1d;
+    }
+  </style>
 </head>
+
 <body>
   <h1>The Coolest Weather Lookup App</h1>
+
   <div class="card">
     <div class="row">
       <input id="city" placeholder="Enter city (e.g., San Diego)" />
       <select id="units" aria-label="Units">
-        <option value="metric">Metric (°C)</option>
         <option value="imperial">Imperial (°F)</option>
+        <option value="metric">Metric (°C)</option>
       </select>
       <button id="go">Get Weather</button>
     </div>
+
     <div id="out" class="muted">Results will appear here.</div>
     <pre id="raw" style="display:none"></pre>
   </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
+
+    // Nice UX: hit Enter in the city box to search
+    $("city").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("go").click();
+    });
+
     $("go").addEventListener("click", async () => {
       const city = $("city").value.trim();
       const units = $("units").value;
-      if (!city) { $("out").textContent = "Please enter a city."; return; }
+
+      if (!city) {
+        $("out").innerHTML = `<div class="error">Please enter a city.</div>`;
+        return;
+      }
 
       $("out").textContent = "Loading…";
-      $("raw").style.display = "none";  // Hide raw output initially - can be shown for debugging if needed
+      $("raw").style.display = "none";
 
       try {
-        // Because this page is served by Flask on 127.0.0.1:5050,
-        // we can call the API with a relative path:
         const r = await fetch(`/v1/weather?city=${encodeURIComponent(city)}&units=${encodeURIComponent(units)}`);
         const data = await r.json();
 
         if (!r.ok) {
-          $("out").textContent = `Error: ${data.error || r.statusText}`;
-          // $("raw").textContent = JSON.stringify(data, null, 2);  **commented out to reduce clutter - can use for debugging**
-          // $("raw").style.display = "block"; **commented out to reduce clutter - can use for debugging**
+          $("out").innerHTML = `<div class="error">Error: ${data.error || r.statusText}</div>`;
           return;
         }
 
-        const t = units === "metric" ? `${data.temp_c} °C` : `${data.temp_f} °F`;
+        const tempText = units === "metric" ? `${data.temp_c} °C` : `${data.temp_f} °F`;
+        // Get state/region (fallback to raw data if not top-level yet)
+        const region = data.region ?? data.raw?.location?.region ?? "";
+        // Normalize country display
+        const country =             data.country === "United States of America" || data.country === "United States" ? "USA" : data.country;
+
+
+
         $("out").innerHTML = `
-          <strong>${data.city}, ${data.country}</strong><br/>
-          Conditions: ${data.conditions}<br/>
-          Temp: <strong>${t}</strong><br/>
-          Humidity: ${data.humidity}%<br/>
-          Wind: ${data.wind_speed_mph} mph<br/>
-          <span class="muted">Requested at: ${data.requested_at}</span>
+        
+  <div class="result">
+    <div class="result-city">
+       ${data.city}${region ? `, ${region}` : ""}, ${country}
+    </div>
+    <div class="result-grid">
+      <div class="result-line">
+        <span class="label">Conditions:</span> ${data.conditions}
+      </div>
+      <div class="result-line">
+        <span class="label">Temp:</span> <strong>${tempText}</strong>
+      </div>
+      <div class="result-line">
+        <span class="label">Humidity:</span> ${data.humidity}%
+      </div>
+      <div class="result-line">
+        <span class="label">Wind:</span> ${data.wind_speed_mph} mph
+      </div>
+    </div>
+
+    <div class="result-time">
+      Requested at: ${data.requested_at}
+    </div>
+  </div>
+
+
         `;
-        // $("raw").textContent = JSON.stringify(data, null, 2); **commented out to reduce clutter - can use for debugging**
-        // $("raw").style.display = "block"; **commented out to reduce clutter - can use for debugging**
       } catch (e) {
-        $("out").textContent = "Network error. Is the API running on 127.0.0.1:5050?";
+        $("out").innerHTML = `<div class="error">Network error. Is the API running on 127.0.0.1:5050?</div>`;
       }
     });
   </script>
